@@ -21,6 +21,10 @@ Permite a equipos de seguridad, identidad y cumplimiento obtener visibilidad inm
 
 ---
 
+## 📸 Vista Previa
+![Dashboard - Pagina Principal](./images/PBIPreview1.jpg)
+*Figura 1: Vista general del estado de gobernanza y roles privilegiados.*
+
 ## ✅ Requisitos
 
 ### Power BI Desktop
