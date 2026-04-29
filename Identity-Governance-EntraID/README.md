@@ -23,7 +23,10 @@ Permite a equipos de seguridad, identidad y cumplimiento obtener visibilidad inm
 
 ## 📸 Vista Previa
 ![Dashboard - Pagina Principal](./images/PBIPreview1.jpg)
-*Figura 1: Vista general del estado de gobernanza y roles privilegiados.*
+*Figura 1: Vista página 1 del estado de gobernanza y roles privilegiados.*
+
+![Dashboard - Pagina Secundarioa](./images/PBIPreview2.jpg)
+*Figura 2: Vista página 2 del estado de gobernanza y roles privilegiados.*
 
 ## ✅ Requisitos
 
