@@ -44,7 +44,6 @@ Consulta 'Elegibilidad' (etapa 'RawEligibility') hace referencia a otras consult
 por lo tanto puede no tener acceso directo a un origen de datos. Recompile esta combinación
 de datos.
 ```
-(o el equivalente en portugués: *"faz referência a outras consultas ou etapas..."*)
 
 **Causa:** Power Query bloquea por defecto la combinación de datos entre distintos orígenes o
 consultas dependientes (los **Niveles de privacidad**), como medida de seguridad ante posible
@@ -66,7 +65,7 @@ de Power BI Desktop que no viaja con el archivo. Cada usuario nuevo debe configu
 
 ---
 
-## 4. Error de autenticación al refrescar: "Não foi possível autenticar com as credenciais fornecidas" / "Could not authenticate with the credentials provided"
+## 4. Error de autenticación al refrescar: "Could not authenticate with the credentials provided"
 
 **Contexto:** suele aparecer justo después de cambiar la configuración de privacidad del punto
 3, cuando Power BI vuelve a evaluar los orígenes de datos y pide credenciales para
