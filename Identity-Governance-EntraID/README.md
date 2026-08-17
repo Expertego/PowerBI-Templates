@@ -21,6 +21,28 @@ Permite a equipos de seguridad, identidad y cumplimiento obtener visibilidad inm
 
 ---
 
+## ⚠️ Requisitos previos antes del primer uso
+
+Antes de abrir la plantilla y cargar tus credenciales, configura lo siguiente en
+**Power BI Desktop** (una sola vez por instalación):
+
+1. **Niveles de privacidad**: Archivo → Opciones y configuración → Opciones → sección
+   **"ARCHIVO ACTUAL"** → Privacidad → selecciona **"Omitir siempre los niveles de
+   privacidad"**. La plantilla combina múltiples llamadas a Microsoft Graph y, sin este
+   ajuste, Power BI puede bloquear el refresco con un error de "Formula Firewall".
+2. **App Registration en Entra ID** con permisos de **aplicación** (no delegados) y
+   consentimiento de administrador para: `User.Read.All`, `Group.Read.All`,
+   `Application.Read.All`, `Organization.Read.All`, `RoleManagement.Read.Directory`,
+   `RoleEligibilitySchedule.Read.Directory`.
+3. Ten a mano el `Tenant ID`, `Client ID` y un `Client Secret` **vigente** de ese
+   App Registration — se piden como parámetros al abrir la plantilla.
+
+📄 Si al refrescar ves algún error (duplicados, autenticación, "Formula Firewall", etc.),
+consulta primero **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** — cubre los problemas más
+comunes reportados por usuarios y cómo resolverlos paso a paso.
+
+---
+
 ## 📸 Vista Previa
 ![Dashboard - Pagina Principal](./images/PBIPreview1.jpg)
 *Figura 1: Vista página 1 del estado de gobernanza y roles privilegiados.*
