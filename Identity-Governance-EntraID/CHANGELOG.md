@@ -3,6 +3,11 @@
 Todos los cambios notables de esta plantilla se documentan en este archivo.
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.0.0/).
 
+## [1.1.1] - 2026-08-19
+
+### Fixed
+- **Error de duplicados en `Elegibilidad`** (`Column 'ID_Entidad' ... contains a duplicate value ...`): causado por una relación de modelo auto-detectada por Power BI entre `Reporte_Final.ID_Entidad` y `Elegibilidad.ID_Entidad`, que forzaba unicidad en una tabla donde es normal tener múltiples filas por persona (una por cada rol elegible). Se eliminó la relación redundante — `Reporte_Final` ya obtiene esos datos aplanados vía Power Query.
+
 ## [1.1.0] - 2026-08-12
 
 ### Fixed
