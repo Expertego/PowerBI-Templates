@@ -36,7 +36,36 @@ en el editor de Power Query) antes de asumir que es un problema de conexión.
 
 ---
 
-## 3. Error de "Formula Firewall" al refrescar
+## 3. Error: "Column 'ID_Entidad' in Table 'Elegibilidad' contains a duplicate value"
+
+**Mensaje completo (el valor duplicado varía):**
+```
+Column 'ID_Entidad' in Table 'Elegibilidad' contains a duplicate value '...' and this is
+not allowed for columns on the one side of a many-to-one relationship or for columns that
+are used as the primary key of a table.
+```
+
+**Causa:** Power BI Desktop puede crear automáticamente una relación de modelo entre
+`Reporte_Final.ID_Entidad` y `Elegibilidad.ID_Entidad` (función "Detectar nuevas relaciones
+después de cargar los datos"), tratando a `Elegibilidad.ID_Entidad` como si debiera ser único.
+Esto es incorrecto: `Elegibilidad` es una tabla donde es normal y esperado que la misma
+persona aparezca en varias filas (una por cada rol para el que es elegible vía PIM). En
+tenants con muchas asignaciones de roles múltiples por persona, esta relación espuria
+eventualmente choca con datos reales y rompe el refresco completo.
+
+Esto ya está corregido desde la versión 1.1.1 de la plantilla: se eliminó esa relación
+redundante (`Reporte_Final` ya trae los datos de `Elegibilidad` aplanados vía Power Query, así
+que no se pierde nada al quitarla del modelo de relaciones).
+
+**Solución si aparece en una versión anterior o reaparece:**
+1. Modelado → vista de Relaciones (Model view).
+2. Busca la línea que conecta `Reporte_Final` con `Elegibilidad` por la columna `ID_Entidad`.
+3. Clic derecho sobre la relación → Eliminar.
+4. Ver la sección siguiente para evitar que Power BI la vuelva a crear sola.
+
+---
+
+## 4. Error de "Formula Firewall" al refrescar
 
 **Mensaje típico:**
 ```
@@ -65,7 +94,7 @@ de Power BI Desktop que no viaja con el archivo. Cada usuario nuevo debe configu
 
 ---
 
-## 4. Error de autenticación al refrescar: "Could not authenticate with the credentials provided"
+## 5. Error de autenticación al refrescar: "Could not authenticate with the credentials provided"
 
 **Contexto:** suele aparecer justo después de cambiar la configuración de privacidad del punto
 3, cuando Power BI vuelve a evaluar los orígenes de datos y pide credenciales para
@@ -94,7 +123,7 @@ arrastrando en vez de pedir una nueva.
 
 ---
 
-## 5. Checklist de requisitos previos (recomendado revisar antes de abrir la plantilla)
+## 6. Checklist de requisitos previos (recomendado revisar antes de abrir la plantilla)
 
 - [ ] Tienes un **App Registration** en Microsoft Entra ID con permisos de **aplicación**
       (no delegados) y **consentimiento de administrador otorgado** para, como mínimo:
@@ -106,6 +135,11 @@ arrastrando en vez de pedir una nueva.
       niveles de privacidad** (ver punto 3 arriba) **antes** del primer refresco.
 - [ ] Las credenciales de `login.microsoftonline.com` y `graph.microsoft.com` están en
       **Anónimo** en Configuración de origen de datos.
+- [ ] Desactivaste "Detectar nuevas relaciones después de cargar los datos" en Archivo →
+      Opciones y configuración → Opciones → Archivo actual → Carga de datos. Esto evita que
+      Power BI cree automáticamente relaciones incorrectas entre tablas que comparten nombres
+      de columna (como `ID_Entidad` o `ID_Rol`), que es la causa raíz de varios de los errores
+      de "valor duplicado" descritos en este documento.
 
 Seguir este checklist antes del primer refresco evita la mayoría de los problemas descritos
 en este documento.
