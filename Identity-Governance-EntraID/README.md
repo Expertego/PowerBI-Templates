@@ -1,8 +1,8 @@
 # 📊 Dashboard Entra ID Roles — Power BI Template
 
 **Empresa:** Expertego  
-**Versión:** 1.0  
-**Fecha:** Abril 2026  
+**Versión:** 1.2.0  
+**Fecha:** Octubre 2026  
 **Contacto:** info@expertego.com  
 **Licencia:** Uso bajo los términos descritos en la sección [Disclaimer](#disclaimer)
 
@@ -14,10 +14,11 @@ Template de Power BI para auditoría y monitoreo de **roles privilegiados en Mic
 
 Permite a equipos de seguridad, identidad y cumplimiento obtener visibilidad inmediata sobre:
 
-- Qué identidades tienen roles privilegiados asignados
+- Qué identidades tienen roles privilegiados asignados, con detalle por identidad
 - Qué roles están asignados de forma permanente vs. gestionados via PIM
-- El nivel de riesgo general del tenant basado en factores documentados por Microsoft y CIS
-- Asignaciones huérfanas (sin identidad activa asociada)
+- El nivel de riesgo de cada rol (Crítico / Alto / Medio / Bajo) según la clasificación de Microsoft
+- El nivel de riesgo general del tenant (Score 0–100) basado en factores documentados por Microsoft y CIS
+- Asignaciones huérfanas (sin identidad activa asociada) y aplicaciones con roles privilegiados
 
 ---
 
@@ -70,13 +71,16 @@ Se requiere un App Registration en el tenant destino con los siguientes permisos
 
 | Permiso | Propósito |
 |---|---|
-| `RoleManagement.Read.All` | Leer asignaciones y definiciones de roles |
+| `RoleManagement.Read.Directory` | Leer definiciones de roles, asignaciones (incluidas las activadas via PIM) y elegibilidades |
+| `RoleEligibilitySchedule.Read.Directory` | Leer elegibilidades PIM (alternativa más acotada) |
 | `User.Read.All` | Leer información de usuarios |
 | `Application.Read.All` | Leer service principals |
 | `Group.Read.All` | Leer grupos |
 | `Organization.Read.All` | Leer nombre y dominio del tenant |
 
 > ⚠️ **Todos los permisos son Application (no Delegated)** porque el flujo usa `client_credentials`. Requieren Admin Consent del Global Administrator del tenant.
+
+> ℹ️ Desde la v1.2.0 las asignaciones activas se leen de `roleAssignmentScheduleInstances`, que distingue asignaciones **permanentes**, **temporales** y **activaciones PIM**. Si el App Registration no tiene permiso para ese endpoint, la plantilla usa automáticamente `roleAssignments` (sin esa distinción) y el reporte sigue cargando.
 
 ---
 
@@ -88,7 +92,7 @@ Se requiere un App Registration en el tenant destino con los siguientes permisos
 2. Nombre sugerido: `PBI-EntraIDRoles-Reader`
 3. Supported account types: *Accounts in this organizational directory only*
 4. Sin Redirect URI
-5. En **API permissions** agrega los 5 permisos listados arriba como **Application permissions**
+5. En **API permissions** agrega los permisos listados arriba como **Application permissions**
 6. Haz clic en **Grant admin consent**
 7. En **Certificates & secrets** → **New client secret** → copia el **Value** inmediatamente
 
@@ -104,7 +108,7 @@ En el portal de Entra ID, en el App Registration creado:
 
 ### Paso 3 — Abrir el template
 
-1. Haz doble clic en el archivo `EntraIDRoles_Template.pbit`
+1. Haz doble clic en el archivo `EntraIDRoles.pbit`
 2. Power BI Desktop mostrará un formulario solicitando los 3 parámetros
 3. Ingresa `TenantID`, `ClientID` y `ClientSecret` del tenant a auditar
 4. Haz clic en **Load**
@@ -130,12 +134,20 @@ El modelo contiene las siguientes tablas:
 
 | Tabla | Descripción | Fuente |
 |---|---|---|
-| `Asignaciones` | Roles activos asignados en el directorio | `/v1.0/roleManagement/directory/roleAssignments` |
-| `Elegibilidad` | Roles elegibles via PIM (requiere Entra ID P2) | `/v1.0/roleManagement/directory/roleEligibilityScheduleInstances` |
 | `Identidades` | Usuarios, service principals y grupos del tenant | `/v1.0/users`, `/v1.0/servicePrincipals`, `/v1.0/groups` |
-| `Roles` | Definiciones de roles de Entra ID | `/v1.0/roleManagement/directory/roleDefinitions` |
-| `Reporte_Final` | Tabla combinada con todas las asignaciones enriquecidas | Combinación de las tablas anteriores |
+| `Roles` | Definiciones de roles de Entra ID, incluido el atributo `isPrivileged` | `/v1.0/roleManagement/directory/roleDefinitions` (con respaldo a `beta`) |
+| `Reporte_Final` | Tabla combinada con todas las asignaciones enriquecidas | Combinación de las consultas intermedias y tablas anteriores |
 | `_Config` | Nombre del tenant, dominio y fecha de actualización | `/v1.0/organization` |
+
+Consultas intermedias (no se cargan al modelo; alimentan `Reporte_Final`):
+
+| Consulta | Descripción | Fuente |
+|---|---|---|
+| `Asignaciones` | Roles activos: permanentes, temporales y activaciones PIM | `/v1.0/roleManagement/directory/roleAssignmentScheduleInstances` (respaldo: `roleAssignments`) |
+| `Elegibilidad` | Roles elegibles via PIM (requiere Entra ID P2) | `/v1.0/roleManagement/directory/roleEligibilityScheduleInstances` |
+| `GraphPaginas` | Función común: lee **todas las páginas** de cada consulta (`@odata.nextLink`) y reintenta ante límites de Graph (429/503) | — |
+
+> Las activaciones PIM en curso no se cuentan como asignaciones permanentes ni se duplican: ya están representadas por su elegibilidad.
 
 ### Parámetros
 | Parámetro | Descripción |
@@ -148,59 +160,80 @@ El modelo contiene las siguientes tablas:
 
 ## 📊 Indicadores y visualizaciones
 
+El reporte tiene dos páginas:
+
+- **Asignaciones privilegiadas** — vista general del tenant.
+- **Detalle de identidad** — página de detalle (*drill-through*): en la tabla de la primera página, clic derecho sobre una identidad → **Obtener detalles → Detalle de identidad**. Muestra sus roles, nivel de riesgo, tipo de asignación y fechas. El botón ⟵ regresa a la vista general.
+
+### Indicadores de estado (encabezado)
+
+| Indicador | Descripción |
+|---|---|
+| **% PIM usuarios** | % de asignaciones de usuarios y grupos gestionadas via PIM (las aplicaciones se excluyen porque no pueden ser elegibles) |
+| **Sin identidad** | Asignaciones huérfanas: la identidad ya no existe en el directorio |
+| **Apps con rol** | Aplicaciones (service principals) con al menos un rol de directorio |
+| **Apps privileg.** | Aplicaciones con un rol Crítico o Alto |
+
 ### Tarjetas KPI
 
 | Indicador | Descripción |
 |---|---|
-| **Total Asignaciones** | Número total de asignaciones de roles activas en el tenant |
-| **Asignaciones Permanentes** | Roles asignados de forma permanente (sin fecha de expiración) |
-| **Asignaciones PIM** | Roles gestionados via Privileged Identity Management |
-| **Global Admins** | Cantidad de identidades con rol Global Administrator |
-| **Score de Riesgo** | Puntuación ponderada de riesgo del tenant (ver detalle abajo) |
+| **Total Asignaciones** | Número total de asignaciones de roles (activas y elegibles) |
+| **Permanentes** | Asignaciones activas sin fecha de expiración |
+| **Vía PIM** | Elegibilidades PIM y asignaciones activas con fecha de fin |
+| **Global Admins** | Asignaciones del rol Global Administrator (límite recomendado: 4) |
+| **Score de Riesgo** | Puntuación 0–100 del tenant (ver metodología abajo) |
 
-### Gráficos
+### Gráficos y tabla
 
 | Visualización | Descripción |
 |---|---|
-| Barras horizontales | Roles más asignados, ordenados por cantidad con código de color por nivel de riesgo |
-| Dona — Tipo de identidad | Distribución entre usuarios, service principals y grupos |
-| Dona — Método de asignación | Proporción de asignaciones Permanentes vs PIM |
-| Barras apiladas | Global Administrators desglosados por usuario y método |
-| Tabla de detalle | Todas las asignaciones con formato condicional por nivel de riesgo |
+| Roles asignados | Roles más asignados, coloreados por nivel de riesgo |
+| Nivel de riesgo del rol | Distribución de asignaciones por nivel Crítico / Alto / Medio / Bajo |
+| Método de asignación | Proporción de asignaciones Permanentes vs PIM |
+| Detalle de asignaciones | Todas las asignaciones con formato por nivel de riesgo y n.º de asignaciones por fila. Las aplicaciones se muestran como **Permanente (app)** en gris: es lo esperado, porque solo admiten asignación activa |
 
 ### Segmentadores (filtros interactivos)
 - Tipo de identidad (`user`, `servicePrincipal`, `group`)
 - Nivel de riesgo (`Critico`, `Alto`, `Medio`, `Bajo`)
 - Método de asignación (`Permanente`, `PIM`)
 
+### Nivel de riesgo por rol
+
+| Nivel | Criterio |
+|---|---|
+| 🔴 **Crítico** | Roles *Tier 0*: Global Administrator, Privileged Role Administrator, Privileged Authentication Administrator, Security Administrator, Conditional Access Administrator, Hybrid Identity Administrator, Application Administrator, Cloud Application Administrator, Partner Tier2 Support (identificados por su ID fijo, igual en todos los tenants) |
+| 🟠 **Alto** | Otros roles marcados como privilegiados por Microsoft (`isPrivileged`) |
+| 🔵 **Medio** | Otros roles de administración |
+| 🟢 **Bajo** | Resto de roles (lectura, etc.) |
+
 ---
 
 ## 🔢 Score de Riesgo — Metodología
 
-El Score de Riesgo es una métrica ponderada propia de este template, basada en factores documentados por **Microsoft** y el **CIS (Center for Internet Security)**.
+El Score de Riesgo es una métrica propia de este template, basada en factores documentados por **Microsoft** y el **CIS (Center for Internet Security)**. Desde la v1.2.0 es un puntaje **0–100 comparable entre tenants de cualquier tamaño** (antes era una suma absoluta que crecía con el tamaño del tenant).
 
 ### Fórmula
 
 ```
-Score = (Global Admins × 10) + (Asignaciones Permanentes × 3) + (Roles sin Identidad × 5)
+Score = 100 × (0.60 × % permanentes privilegiadas + 0.40 × exceso de Global Admins)
 ```
 
-### Justificación de pesos
+| Componente | Peso | Cálculo | Respaldo |
+|---|---|---|---|
+| Permanentes privilegiadas | 60% | Asignaciones permanentes ÷ total de asignaciones en roles Crítico/Alto, solo usuarios y grupos | Microsoft recomienda eliminar asignaciones permanentes y usar PIM Just-in-Time. Las aplicaciones se excluyen porque no pueden ser elegibles en PIM. |
+| Exceso de Global Admins | 40% | (Global Admins − 4) ÷ 4, entre 0 y 1 (el doble del límite = máximo) | Microsoft recomienda menos de 5 Global Administrators. |
 
-| Factor | Peso | Respaldo |
-|---|---|---|
-| Global Admins | ×10 | Rol de máximo privilegio en el tenant. Microsoft recomienda <5. |
-| Asignaciones Permanentes | ×3 | Microsoft recomienda eliminar asignaciones permanentes y usar PIM Just-in-Time. |
-| Roles sin Identidad | ×5 | Asignaciones huérfanas — la identidad fue eliminada pero el rol persiste, riesgo de reactivación. |
+> El límite de Global Admins está en una sola medida (`Limite Global Admins = 4`) por si tu organización usa otro valor.
 
 ### Niveles de riesgo
 
 | Nivel | Score | Descripción |
 |---|---|---|
-| 🟢 **Bajo** | < 40 | Configuración dentro de las mejores prácticas |
-| 🟡 **Medio** | 40 – 79 | Algunas mejoras recomendadas |
-| 🟠 **Alto** | 80 – 119 | Acciones correctivas prioritarias |
-| 🔴 **Crítico** | ≥ 120 | Riesgo elevado — acción inmediata recomendada |
+| 🟢 **Bajo** | < 20 | Configuración dentro de las mejores prácticas |
+| 🔵 **Medio** | 20 – 39 | Algunas mejoras recomendadas |
+| 🟠 **Alto** | 40 – 59 | Acciones correctivas prioritarias |
+| 🔴 **Crítico** | ≥ 60 | Riesgo elevado — acción inmediata recomendada |
 
 > **Nota:** Este score es orientativo y no reemplaza una evaluación de seguridad formal. Ver sección [Referencias](#referencias) para frameworks oficiales.
 
@@ -221,7 +254,7 @@ El umbral de **≥5 Global Admins = riesgo** está respaldado por:
 
 **Asignación huérfana (Rol sin identidad):** Asignación de rol donde la identidad destino (usuario, grupo o service principal) fue eliminada del directorio pero el registro de asignación persiste. Representa un riesgo porque si la cuenta es restaurada hereda automáticamente esos privilegios.
 
-**Service Principal:** Identidad de aplicación o servicio en Entra ID. Equivalente a una cuenta de servicio. Los service principals con roles privilegiados deben monitorearse especialmente porque no tienen MFA.
+**Service Principal:** Identidad de aplicación o servicio en Entra ID. Equivalente a una cuenta de servicio. Los service principals con roles privilegiados deben monitorearse especialmente porque no tienen MFA. En PIM no pueden ser elegibles (sus asignaciones son siempre activas), por eso el reporte los muestra aparte y no los cuenta en la cobertura PIM.
 
 **Break Glass Account:** Cuenta de acceso de emergencia con rol Global Administrator, diseñada para usarse solo cuando otros métodos de acceso fallan. Deben existir al menos 2 y estar excluidas de políticas de Conditional Access.
 
@@ -277,4 +310,4 @@ Para consultas de licenciamiento, soporte o personalización contactar: **info@e
 
 ---
 
-*Dashboard Entra ID Roles v1.0 — Expertego — 2026*
+*Dashboard Entra ID Roles v1.2.0 — Expertego — 2026*

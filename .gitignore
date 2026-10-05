@@ -1,0 +1,10 @@
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+
+# Solo se publica la plantilla (.pbit, parametros en null) y la documentacion.
+# El .pbix contiene datos del tenant y el proyecto PBIP guarda los parametros
+# (TenantID, ClientID, ClientSecret) en texto plano: nunca deben subirse.
+*.pbix
+*.pbip
+*.Report/
+*.SemanticModel/
