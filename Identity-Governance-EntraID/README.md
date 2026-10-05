@@ -4,7 +4,7 @@
 **Versión:** 1.2.0  
 **Fecha:** Octubre 2026  
 **Contacto:** info@expertego.com  
-**Licencia:** Uso bajo los términos descritos en la sección [Disclaimer](#disclaimer)
+**Licencia:** [MIT](../LICENSE) — ver también la sección [Disclaimer](#disclaimer)
 
 ---
 
@@ -286,15 +286,15 @@ La columna **Última Actualización** en el encabezado del reporte refleja el mo
 
 ## ⚠️ Disclaimer
 
-**© 2026 Expertego. Todos los derechos reservados.**
+**© 2026 Expertego.** Este template se distribuye bajo la [Licencia MIT](../LICENSE).
 
 Este template de Power BI es desarrollado y distribuido por **Expertego** con fines informativos y de apoyo a tareas de auditoría y monitoreo de seguridad en entornos Microsoft Entra ID.
 
 **Al usar este template, el usuario acepta los siguientes términos:**
 
-1. **Uso permitido:** Este template puede ser utilizado libremente para auditoría interna de seguridad en organizaciones. Se permite su descarga y uso sin modificación de la atribución de autoría.
+1. **Licencia:** Puedes usar, copiar, modificar y distribuir este template conforme a la Licencia MIT, siempre que conserves el aviso de copyright de Expertego y el texto de la licencia en las copias o partes sustanciales del mismo.
 
-2. **Prohibiciones:** Queda prohibida la redistribución comercial, reventa, o presentación del template como trabajo propio sin autorización expresa y por escrito de Expertego.
+2. **Marca:** La Licencia MIT cubre el template, no el nombre ni la marca **Expertego**. No uses la marca de forma que sugiera respaldo, afiliación o autoría de Expertego sobre versiones modificadas o derivadas sin autorización expresa.
 
 3. **Sin garantía:** Este template se proporciona "tal cual" (*as-is*), sin garantías de ningún tipo, expresas o implícitas. Expertego no garantiza que el template esté libre de errores, que sea apropiado para un propósito específico, ni que los resultados obtenidos sean completos o exactos.
 
